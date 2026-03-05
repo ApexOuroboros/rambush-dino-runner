@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RAMbush Dino Runner - Sheep in Space!</title>
     <style>
         body {
@@ -56,6 +56,7 @@
         🐑 SPACE / TAP to Jump! 🚀<br>
         Made by RAMbush - Pure HTML/JS
     </div>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -86,9 +87,22 @@
 
         highScoreSpan.textContent = highScore;
 
-        resetGame();
-        
-        // Initialize stars for space background
+        // Force clean start immediately
+        function resetGame() {
+            obstacles = [];
+            score = 0;
+            gameSpeed = 6;
+            dino.y = groundY;
+            dino.velocity = 0;
+            isJumping = false;
+            gameOver = false;
+            frame = 0;
+            gameOverText.style.display = 'none';
+            initStars();
+        }
+        resetGame();  // <--- Clean start here
+
+        // Initialize stars
         function initStars() {
             stars = [];
             for (let i = 0; i < 60; i++) {
@@ -102,7 +116,7 @@
         }
         initStars();
 
-        // Jump function (space, click, touch)
+        // Jump function
         function jump() {
             if (!isJumping && !gameOver) {
                 dino.velocity = dino.jumpHeight;
@@ -112,7 +126,7 @@
             }
         }
 
-        // Event listeners
+        // Events
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 e.preventDefault();
@@ -127,9 +141,8 @@
             e.preventDefault();
             jump();
         });
-        canvas.focus();
 
-        // Generate plant obstacles
+        // Generate plant obstacle
         function generateObstacle() {
             const heightVar = 20 + Math.random() * 20;
             const widthVar = 12 + Math.random() * 8;
@@ -141,7 +154,7 @@
             });
         }
 
-        // Collision check
+        // Collision
         function checkCollision() {
             for (let obs of obstacles) {
                 if (dino.x < obs.x + obs.width &&
@@ -154,23 +167,8 @@
             return false;
         }
 
-        // Reset game
-        function resetGame() {
-            obstacles = [];
-            score = 0;
-            gameSpeed = 6;
-            dino.y = groundY;
-            dino.velocity = 0;
-            isJumping = false;
-            gameOver = false;
-            frame = 0;
-            gameOverText.style.display = 'none';
-            initStars(); // Refresh stars
-        }
-
-        // Draw space background
+        // Draw background
         function drawBackground() {
-            // Gradient sky
             const gradient = ctx.createLinearGradient(0, 0, 0, groundY);
             gradient.addColorStop(0, '#000022');
             gradient.addColorStop(0.5, '#000044');
@@ -178,7 +176,6 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, groundY);
 
-            // Stars with parallax
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             for (let star of stars) {
                 ctx.beginPath();
@@ -189,13 +186,11 @@
             }
         }
 
-        // Draw moon-like ground
+        // Draw ground
         function drawGround() {
-            // Ground fill
             ctx.fillStyle = '#333';
             ctx.fillRect(0, groundY + 10, canvas.width, canvas.height - groundY - 10);
 
-            // Ground line with glow
             ctx.shadowColor = '#aaffcc';
             ctx.shadowBlur = 5;
             ctx.strokeStyle = '#aaffcc';
@@ -206,7 +201,6 @@
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // Small craters
             ctx.fillStyle = '#222';
             for (let i = 0; i < 10; i++) {
                 const cx = (frame * 0.5 + i * 60) % canvas.width;
@@ -217,25 +211,21 @@
             }
         }
 
-        // Draw fluffy sheep dino (with helmet!)
+        // Draw sheep dino
         function drawDino() {
             const legOffset = Math.sin(dino.legFrame * 0.4) * 3;
 
-            // Wool puffs (body)
             ctx.fillStyle = '#fff';
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = 8;
-            // Main body
             ctx.beginPath();
             ctx.roundRect(dino.x + 3, dino.y + 15, 20, 25, 8);
             ctx.fill();
-            // Tail puff
             ctx.beginPath();
             ctx.arc(dino.x + 1, dino.y + 25, 6, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // Helmet (astronaut glow)
             ctx.shadowColor = '#ffff99';
             ctx.shadowBlur = 12;
             ctx.fillStyle = '#aaffcc';
@@ -244,40 +234,33 @@
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // Head under helmet
             ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(dino.x + 18, dino.y + 12, 8, 0, Math.PI * 2);
             ctx.fill();
 
-            // Eyes
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(dino.x + 14, dino.y + 10, 2, 0, Math.PI * 2);
             ctx.arc(dino.x + 22, dino.y + 10, 2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Legs (running animation)
             ctx.fillStyle = '#ddd';
             ctx.fillRect(dino.x + 5, dino.y + 38 + legOffset, 4, 12);
             ctx.fillRect(dino.x + 18, dino.y + 38 - legOffset, 4, 12);
         }
 
-        // Draw plant obstacle
+        // Draw plant
         function drawObstacle(obs) {
-            // Stem
             ctx.shadowColor = '#32cd32';
             ctx.shadowBlur = 6;
             ctx.fillStyle = '#228b22';
             ctx.fillRect(obs.x + 4, obs.y + 15, 4, obs.height - 15);
 
-            // Leaves/top
             ctx.fillStyle = '#32cd32';
-            // Top blob
             ctx.beginPath();
             ctx.arc(obs.x + 6, obs.y + 10, 8, 0, Math.PI * 2);
             ctx.fill();
-            // Side leaves
             ctx.beginPath();
             ctx.ellipse(obs.x + 1, obs.y + 8, 6, 3, 0, 0, Math.PI * 2);
             ctx.fill();
@@ -289,18 +272,17 @@
 
         // Game loop
         function gameLoop() {
+            // Debug flash to confirm loop runs
             if (frame === 0) {
-                ctx.fillStyle = '#001144';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#ffff99';
-                ctx.font = '30px Courier New';
-                ctx.fillText('Starting Sheep Run...', 100, 100);
+                ctx.font = 'bold 30px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText('SHEEP RUN STARTING!', canvas.width / 2, canvas.height / 2);
             }
-            
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (!gameOver) {
-                // Update dino physics
                 dino.velocity += dino.gravity;
                 dino.y += dino.velocity;
                 if (dino.y >= groundY) {
@@ -310,7 +292,6 @@
                 }
                 dino.legFrame = frame;
 
-                // Update obstacles
                 for (let i = obstacles.length - 1; i >= 0; i--) {
                     obstacles[i].x -= gameSpeed;
                     if (obstacles[i].x + obstacles[i].width < 0) {
@@ -318,21 +299,17 @@
                     }
                 }
 
-                // Generate obstacles
                 frame++;
                 if (frame % 75 === 0) {
                     generateObstacle();
                 }
 
-                // Ramp up speed
                 if (frame % 250 === 0) {
                     gameSpeed += 0.4;
                 }
 
-                // Update score
-                score += gameSpeed / 60; // Speed-scaled score
+                score += gameSpeed / 60;
 
-                // Collision
                 if (checkCollision()) {
                     gameOver = true;
                     const final = Math.floor(score);
@@ -346,7 +323,6 @@
                 }
             }
 
-            // Always draw
             drawBackground();
             drawGround();
             drawDino();
@@ -354,7 +330,6 @@
                 drawObstacle(obs);
             }
 
-            // UI
             ctx.shadowColor = '#ffff99';
             ctx.shadowBlur = 8;
             ctx.fillStyle = '#ffff99';
@@ -368,7 +343,7 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Polyfill for roundRect and ellipse (older browsers)
+        // Polyfills
         if (!ctx.roundRect) {
             ctx.roundRect = function(x, y, w, h, r) {
                 ctx.beginPath();
@@ -395,16 +370,19 @@
             };
         }
 
-        // Start the game
-        function initAndStart() {
+        // Safe game start
+        function startGame() {
             canvas.focus();
+            resetGame();
             gameLoop();
         }
 
+        window.addEventListener('load', () => {
+            setTimeout(startGame, 100);
+        });
+
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            setTimeout(initAndStart, 100); // tiny delay helps on some hosts
-        } else {
-            window.addEventListener('load', initAndStart);
+            setTimeout(startGame, 100);
         }
     </script>
 </body>
