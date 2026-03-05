@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAMbush Dino Runner - Sheep in Space!</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(to bottom, #000022, #001144);
+            font-family: 'Courier New', monospace;
+            color: #e0e0ff;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #aaffcc;
+            background: #000022;
+            box-shadow: 0 0 20px #aaffcc;
+            cursor: pointer;
+            touch-action: none;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 24px;
+            color: #ff6666;
+            text-shadow: 0 0 10px #ff6666;
+            display: none;
+            pointer-events: none;
+        }
+        #instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="600" height="200" tabindex="0"></canvas>
+    <div id="gameOver">
+        Game Over!<br>
+        Score: <span id="finalScore">0</span><br>
+        High Score: <span id="highScore">0</span><br>
+        <small>SPACE / TAP / CLICK to Restart</small>
+    </div>
+    <div id="instructions">
+        🐑 SPACE / TAP to Jump! 🚀<br>
+        Made by RAMbush - Pure HTML/JS
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverText = document.getElementById('gameOver');
+        const finalScoreSpan = document.getElementById('finalScore');
+        const highScoreSpan = document.getElementById('highScore');
+
+        // Game variables
+        let dino = {
+            x: 50,
+            y: 140,
+            width: 30,
+            height: 50,
+            velocity: 0,
+            jumpHeight: -14,
+            gravity: 0.6,
+            legFrame: 0
+        };
+        let groundY = 140;
+        let obstacles = [];
+        let stars = [];
+        let score = 0;
+        let highScore = localStorage.getItem('rambushHighScore') || 0;
+        let gameSpeed = 6;
+        let isJumping = false;
+        let gameOver = false;
+        let frame = 0;
+
+        highScoreSpan.textContent = highScore;
+
+        // Initialize stars for space background
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 60; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * groundY,
+                    size: Math.random() * 1.5 + 0.5,
+                    speed: Math.random() * 0.3 + 0.2
+                });
+            }
+        }
+        initStars();
+
+        // Jump function (space, click, touch)
+        function jump() {
+            if (!isJumping && !gameOver) {
+                dino.velocity = dino.jumpHeight;
+                isJumping = true;
+            } else if (gameOver) {
+                resetGame();
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+        canvas.addEventListener('click', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        canvas.focus();
+
+        // Generate plant obstacles
+        function generateObstacle() {
+            const heightVar = 20 + Math.random() * 20;
+            const widthVar = 12 + Math.random() * 8;
+            obstacles.push({
+                x: canvas.width,
+                y: groundY - heightVar,
+                width: widthVar,
+                height: heightVar
+            });
+        }
+
+        // Collision check
+        function checkCollision() {
+            for (let obs of obstacles) {
+                if (dino.x < obs.x + obs.width &&
+                    dino.x + dino.width > obs.x &&
+                    dino.y < obs.y + obs.height &&
+                    dino.y + dino.height > obs.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Reset game
+        function resetGame() {
+            obstacles = [];
+            score = 0;
+            gameSpeed = 6;
+            dino.y = groundY;
+            dino.velocity = 0;
+            isJumping = false;
+            gameOver = false;
+            frame = 0;
+            gameOverText.style.display = 'none';
+            initStars(); // Refresh stars
+        }
+
+        // Draw space background
+        function drawBackground() {
+            // Gradient sky
+            const gradient = ctx.createLinearGradient(0, 0, 0, groundY);
+            gradient.addColorStop(0, '#000022');
+            gradient.addColorStop(0.5, '#000044');
+            gradient.addColorStop(1, '#001144');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, groundY);
+
+            // Stars with parallax
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            for (let star of stars) {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+                star.x -= star.speed;
+                if (star.x < -2) star.x = canvas.width;
+            }
+        }
+
+        // Draw moon-like ground
+        function drawGround() {
+            // Ground fill
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, groundY + 10, canvas.width, canvas.height - groundY - 10);
+
+            // Ground line with glow
+            ctx.shadowColor = '#aaffcc';
+            ctx.shadowBlur = 5;
+            ctx.strokeStyle = '#aaffcc';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 5);
+            ctx.lineTo(canvas.width, groundY + 5);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Small craters
+            ctx.fillStyle = '#222';
+            for (let i = 0; i < 10; i++) {
+                const cx = (frame * 0.5 + i * 60) % canvas.width;
+                const cy = groundY + 15 + Math.sin(frame * 0.01 + i) * 5;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 8 + Math.random() * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Draw fluffy sheep dino (with helmet!)
+        function drawDino() {
+            const legOffset = Math.sin(dino.legFrame * 0.4) * 3;
+
+            // Wool puffs (body)
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 8;
+            // Main body
+            ctx.beginPath();
+            ctx.roundRect(dino.x + 3, dino.y + 15, 20, 25, 8);
+            ctx.fill();
+            // Tail puff
+            ctx.beginPath();
+            ctx.arc(dino.x + 1, dino.y + 25, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Helmet (astronaut glow)
+            ctx.shadowColor = '#ffff99';
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = '#aaffcc';
+            ctx.beginPath();
+            ctx.arc(dino.x + 18, dino.y + 12, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Head under helmet
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(dino.x + 18, dino.y + 12, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(dino.x + 14, dino.y + 10, 2, 0, Math.PI * 2);
+            ctx.arc(dino.x + 22, dino.y + 10, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Legs (running animation)
+            ctx.fillStyle = '#ddd';
+            ctx.fillRect(dino.x + 5, dino.y + 38 + legOffset, 4, 12);
+            ctx.fillRect(dino.x + 18, dino.y + 38 - legOffset, 4, 12);
+        }
+
+        // Draw plant obstacle
+        function drawObstacle(obs) {
+            // Stem
+            ctx.shadowColor = '#32cd32';
+            ctx.shadowBlur = 6;
+            ctx.fillStyle = '#228b22';
+            ctx.fillRect(obs.x + 4, obs.y + 15, 4, obs.height - 15);
+
+            // Leaves/top
+            ctx.fillStyle = '#32cd32';
+            // Top blob
+            ctx.beginPath();
+            ctx.arc(obs.x + 6, obs.y + 10, 8, 0, Math.PI * 2);
+            ctx.fill();
+            // Side leaves
+            ctx.beginPath();
+            ctx.ellipse(obs.x + 1, obs.y + 8, 6, 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(obs.x + 11, obs.y + 18, 5, 3, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameOver) {
+                // Update dino physics
+                dino.velocity += dino.gravity;
+                dino.y += dino.velocity;
+                if (dino.y >= groundY) {
+                    dino.y = groundY;
+                    dino.velocity = 0;
+                    isJumping = false;
+                }
+                dino.legFrame = frame;
+
+                // Update obstacles
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].x -= gameSpeed;
+                    if (obstacles[i].x + obstacles[i].width < 0) {
+                        obstacles.splice(i, 1);
+                    }
+                }
+
+                // Generate obstacles
+                frame++;
+                if (frame % 75 === 0) {
+                    generateObstacle();
+                }
+
+                // Ramp up speed
+                if (frame % 250 === 0) {
+                    gameSpeed += 0.4;
+                }
+
+                // Update score
+                score += gameSpeed / 60; // Speed-scaled score
+
+                // Collision
+                if (checkCollision()) {
+                    gameOver = true;
+                    const final = Math.floor(score);
+                    finalScoreSpan.textContent = final;
+                    if (final > highScore) {
+                        highScore = final;
+                        localStorage.setItem('rambushHighScore', highScore);
+                        highScoreSpan.textContent = highScore;
+                    }
+                    gameOverText.style.display = 'block';
+                }
+            }
+
+            // Always draw
+            drawBackground();
+            drawGround();
+            drawDino();
+            for (let obs of obstacles) {
+                drawObstacle(obs);
+            }
+
+            // UI
+            ctx.shadowColor = '#ffff99';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = '#ffff99';
+            ctx.font = 'bold 20px Courier New';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${Math.floor(score)}`, 10, 30);
+            ctx.fillText(`High: ${highScore}`, 10, 55);
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Polyfill for roundRect and ellipse (older browsers)
+        if (!ctx.roundRect) {
+            ctx.roundRect = function(x, y, w, h, r) {
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
+            };
+        }
+        if (!ctx.ellipse) {
+            ctx.ellipse = function(x, y, radiusX, radiusY, rotation, startAngle, endAngle) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rotation);
+                ctx.scale(radiusX / radiusY, 1);
+                ctx.arc(0, 0, radiusY, startAngle, endAngle);
+                ctx.restore();
+            };
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
