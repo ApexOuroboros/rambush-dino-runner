@@ -86,6 +86,8 @@
 
         highScoreSpan.textContent = highScore;
 
+        resetGame();
+        
         // Initialize stars for space background
         function initStars() {
             stars = [];
@@ -287,6 +289,14 @@
 
         // Game loop
         function gameLoop() {
+            if (frame === 0) {
+                ctx.fillStyle = '#001144';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ffff99';
+                ctx.font = '30px Courier New';
+                ctx.fillText('Starting Sheep Run...', 100, 100);
+            }
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (!gameOver) {
@@ -386,7 +396,16 @@
         }
 
         // Start the game
-        gameLoop();
+        function initAndStart() {
+            canvas.focus();
+            gameLoop();
+        }
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            setTimeout(initAndStart, 100); // tiny delay helps on some hosts
+        } else {
+            window.addEventListener('load', initAndStart);
+        }
     </script>
 </body>
 </html>
